@@ -1,6 +1,7 @@
 package com.gridnine.testing;
 
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -10,8 +11,7 @@ public class Main {
         List<Flight> flights = FlightBuilder.createFlights();
 
         // Исключаем перелеты, которые не удовлетворяют заданным правилам и выводим их списки.
-        // Метод деструктивный, так как выводит результат самолёта, который прилетел раньше своего времени (3 строчка).
-        List<Flight> flightsExcludingDepartureBeforeNow = excludeFlightsDepartureBeforeNow(flights);
+        List<Flight> flightsExcludingDepartureBeforeNow = excludeflightsdeparturebeforenow(flights);
         System.out.println("Исключены перелеты с вылетом до текущего момента времени:");
         for (Flight flight : flightsExcludingDepartureBeforeNow) {
             System.out.println(flight);
@@ -25,8 +25,6 @@ public class Main {
         }
         System.out.println("---------------------------------------------");
 
-        // Метод деструктивный, так как выводит результат самолёта, который простоял несколько дней (3 строчка).
-        // Метод деструктивные, так как выводит результат ровный 2 часам на земле, а не превышающий его
         List<Flight> flightsExcludingGroundTimeExceeded = excludeFlightsGroundTimeExceeded(flights);
         System.out.println("Исключены перелеты, где время проведенное на земле превышает 2 часа:");
         for (Flight flight : flightsExcludingGroundTimeExceeded) {
@@ -41,8 +39,20 @@ public class Main {
         }
         System.out.println("---------------------------------------------");
 
+        printOrdinaryFlights(flights);
+        System.out.println("---------------------------------------------");
+        printMultiSegmentFlights(flights);
+        System.out.println("---------------------------------------------");
+        printFlightSegmentsTime(flights);
+        System.out.println("---------------------------------------------");
+        printFlightsInPast(flights);
+        System.out.println("---------------------------------------------");
+        printFlightsOverTwoHours(flights);
+        System.out.println("---------------------------------------------");
 
-        // Для каждого сегмента перелета вычисляем общее время проведенное на земле и в перелете
+
+
+        // Для каждого сегмента перелета вычисляем общее время проведенное на земле
         List<Flight> timeFlights = FlightBuilder.createFlights();
         for (Flight flight : timeFlights) {
             System.out.println("Сегмент полёта: " + flight.getSegments());
@@ -57,16 +67,17 @@ public class Main {
 
             System.out.println();
         }
+
     }
 
-        // Метод для исключения перелетов с вылетом до текущего момента времени
-        private static List<Flight> excludeFlightsDepartureBeforeNow(List<Flight> flights) {
-            LocalDateTime now = LocalDateTime.now();
-            return flights.stream()
-                    .filter(flight -> flight.getSegments()
-                            .stream()
-                            .allMatch(segment -> segment.getDepartureDate().isAfter(now)))
-                    .collect(Collectors.toList());
+
+
+        private static List<Flight> excludeflightsdeparturebeforenow(List<Flight> flights) {
+        LocalDateTime now = LocalDateTime.now();
+        return flights.stream()
+                .filter(flight -> flight.getSegments().stream()
+                        .allMatch(segment -> segment.getDepartureDate().isAfter(now) ))
+                .collect(Collectors.toList());
         }
 
         // Метод для исключения перелетов с сегментами, где дата прилета раньше даты вылета
@@ -85,7 +96,11 @@ public class Main {
                     .collect(Collectors.toList());
         }
 
-        // Метод для вычисления общего времени проведенного на земле в перелете
+
+
+
+
+    // Метод для вычисления общего времени проведенного на земле в перелете
         private static int getTotalGroundTime(Flight flight) {
             int totalGroundTime = 0;
             List<Segment> segments = flight.getSegments();
@@ -97,17 +112,71 @@ public class Main {
             }
 
             return totalGroundTime / 3600; // переводим в часы
-
         }
-    // 1) Можно добавить метод, что выводит ординарные рейсы.
-    // 2) Можно добавить метод, что выводит самолёты с двумя или большим количеством рейсов.
-    // 3) Можно добавить метод, что высчитывает время между полётами рейсов.
-    // 4) Можно добавить метод, что выводит рейсы отправленные в прошлом.
-    // 5) Можно добавить метод, что выводит рейсы отправленные в прошлом.
-    // 6) Можно добавить метод, что выводит рейсы стоящие ровно 2 часа
+    private static void printOrdinaryFlights(List<Flight> flights) {
+        System.out.println("Ординарные рейсы:");
+        for (Flight flight : flights) {
+            if (flight.getSegments().size() == 1) {
+                System.out.println(flight);
+            }
+        }
+    }
 
+    private static void printMultiSegmentFlights(List<Flight> flights) {
+        System.out.println("Рейсы с двумя или большим количеством сегментов:");
+        for (Flight flight : flights) {
+            if (flight.getSegments().size() > 1) {
+                System.out.println(flight);
+            }
+        }
+    }
 
+    private static void printFlightSegmentsTime(List<Flight> flights) {
+        System.out.println("Время между сегментами рейсов:");
+        for (Flight flight : flights) {
+            List<Segment> segments = flight.getSegments();
+            if (segments.size() > 1) {
+                for (int i = 0; i < segments.size() - 1; i++) {
+                    Segment currentSegment = segments.get(i);
+                    Segment nextSegment = segments.get(i + 1);
+                    Duration duration = Duration.between(currentSegment.getArrivalDate(), nextSegment.getDepartureDate());
+                    System.out.println("Между сегментом " + currentSegment + " и " + nextSegment +
+                            " проходит " + duration.toHours() + " ч.");
+                }
+            }
+        }
+    }
 
+    private static void printFlightsInPast(List<Flight> flights) {
+        System.out.println("Рейсы отправленные в прошлом:");
+        LocalDateTime now = LocalDateTime.now();
+        for (Flight flight : flights) {
+            for (Segment segment : flight.getSegments()) {
+                if (segment.getDepartureDate().isBefore(now)) {
+                    System.out.println(flight);
+                    break;
+                }
+            }
+        }
+    }
 
+    private static void printFlightsOverTwoHours(List<Flight> flights) {
+        System.out.println("Рейсы стоящие более двух часов:");
+        for (Flight flight : flights) {
+            for (Segment segment : flight.getSegments()) {
+                if (segment.getGroundTime() > 2) {
+                    System.out.println(flight);
+                    break;
+                }
+            }
+        }
+    }
 }
+
+
+
+
+
+
+
 
